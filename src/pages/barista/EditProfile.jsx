@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useStore } from '../../context/StoreContext'
 import AppShell from '../../components/AppShell'
 import AvatarUpload from '../../components/AvatarUpload'
+import BaristaAvailability from '../../components/BaristaAvailability'
+import BaristaPaymentForm from '../../components/BaristaPaymentForm'
 import LocationPicker from '../../components/LocationPicker'
 import PageHeader from '../../components/PageHeader'
 import PortfolioManager from '../../components/PortfolioManager'
@@ -214,6 +216,9 @@ function ProfileForm() {
           {saving ? 'Saving...' : 'Save profile'}
         </button>
       </form>
+
+      <BaristaAvailability />
+      <BaristaPaymentForm />
     </div>
   )
 }

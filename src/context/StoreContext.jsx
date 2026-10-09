@@ -79,6 +79,7 @@ export function StoreProvider({ children }) {
         longitude: row.longitude ?? null,
         notes: row.notes ?? '',
         status: row.status,
+        cancelledBy: row.cancelled_by ?? null,
       })),
       reviews: (rv.data ?? []).map((row) => ({
         id: row.id,
@@ -107,7 +108,24 @@ export function StoreProvider({ children }) {
       if (document.visibilityState === 'visible') reload()
     }
     document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+
+    // Realtime: mag-reload kapag may nagbago sa bookings o reviews
+    let timer
+    const scheduleReload = () => {
+      clearTimeout(timer)
+      timer = setTimeout(reload, 400)
+    }
+    const channel = supabase
+      .channel(`store-sync-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, scheduleReload)
+      .subscribe()
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
   }, [userId, reload])
 
   async function mutate(query) {

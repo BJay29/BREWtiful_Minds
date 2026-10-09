@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../../context/StoreContext'
+import { supabase } from '../../lib/supabase'
 import AppShell from '../../components/AppShell'
+import AvailabilityCalendar from '../../components/AvailabilityCalendar'
 import BaristaAvatar from '../../components/BaristaAvatar'
 import EmptyState from '../../components/EmptyState'
 import LocationPicker from '../../components/LocationPicker'
@@ -9,10 +11,11 @@ import PageHeader from '../../components/PageHeader'
 import RatingPill from '../../components/RatingPill'
 import Spinner from '../../components/Spinner'
 import { customerNav } from '../../lib/nav'
-import { todayISO } from '../../lib/format'
 import { btnPrimary, card, inputClass, labelClass, textareaClass } from '../../lib/ui'
 
 const EVENT_TYPES = ['Birthday', 'Wedding', 'Office', 'Other']
+
+const peso = (n) => `₱${Number(n).toLocaleString('en-PH', { maximumFractionDigits: 2 })}`
 
 export default function Booking() {
   const { id } = useParams()
@@ -21,6 +24,9 @@ export default function Booking() {
   const barista = getBarista(id)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [pay, setPay] = useState(null)
+  const [blocked, setBlocked] = useState(new Set())
+  const [booked, setBooked] = useState(new Set())
   const [place, setPlace] = useState({ address: '', lat: null, lng: null })
   const [form, setForm] = useState({
     date: '',
@@ -28,6 +34,27 @@ export default function Booking() {
     eventType: 'Birthday',
     notes: '',
   })
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      supabase
+        .from('barista_payment')
+        .select('rate, deposit_percent')
+        .eq('barista_id', id)
+        .maybeSingle(),
+      supabase.rpc('get_unavailable_dates', { p_barista: id }),
+    ]).then(([p, d]) => {
+      if (cancelled) return
+      setPay(p.data)
+      const rows = d.data ?? []
+      setBlocked(new Set(rows.filter((r) => r.kind === 'blocked').map((r) => r.unavailable_date)))
+      setBooked(new Set(rows.filter((r) => r.kind === 'booked').map((r) => r.unavailable_date)))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   if (!barista) {
     return (
@@ -39,10 +66,17 @@ export default function Booking() {
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }))
 
+  const deposit =
+    pay?.rate != null && pay.deposit_percent ? (pay.rate * pay.deposit_percent) / 100 : null
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
+    if (!form.date) {
+      setError('Please choose an available date.')
+      return
+    }
     if (place.lat == null || place.lng == null) {
       setError('Please pin the event location on the map.')
       return
@@ -82,30 +116,43 @@ export default function Booking() {
         <RatingPill value={barista.rating} />
       </div>
 
-      <form onSubmit={handleSubmit} className={`${card} flex flex-col gap-4 p-5`}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className={labelClass}>
-            Date
-            <input
-              type="date"
-              required
-              min={todayISO()}
-              value={form.date}
-              onChange={(e) => set('date', e.target.value)}
-              className={inputClass}
-            />
-          </label>
-          <label className={labelClass}>
-            Time
-            <input
-              required
-              value={form.time}
-              onChange={(e) => set('time', e.target.value)}
-              placeholder="2PM - 6PM"
-              className={inputClass}
-            />
-          </label>
+      {pay?.rate != null && (
+        <div className="mb-4 rounded-2xl border border-[#EADCCB] bg-[#F6E6D2]/70 p-4 text-sm text-[#4A2B18]">
+          <p>
+            Rate: <b>{peso(pay.rate)}</b> per event
+            {deposit != null && (
+              <>
+                {' '}· Deposit ({pay.deposit_percent}%): <b>{peso(deposit)}</b>
+              </>
+            )}
+          </p>
+          <p className="mt-1 text-xs">
+            You pay after the barista accepts your request. Payment details will appear in My bookings.
+          </p>
         </div>
+      )}
+
+      <form onSubmit={handleSubmit} className={`${card} flex flex-col gap-4 p-5`}>
+        <div>
+          <p className="mb-2 text-sm font-semibold text-[#2B1A12]">Date</p>
+          <AvailabilityCalendar
+            selected={form.date || null}
+            blocked={blocked}
+            booked={booked}
+            onSelect={(iso) => set('date', iso)}
+          />
+        </div>
+
+        <label className={labelClass}>
+          Time
+          <input
+            required
+            value={form.time}
+            onChange={(e) => set('time', e.target.value)}
+            placeholder="2PM - 6PM"
+            className={inputClass}
+          />
+        </label>
 
         <div>
           <p className="mb-2 text-sm font-semibold text-[#2B1A12]">Event type</p>

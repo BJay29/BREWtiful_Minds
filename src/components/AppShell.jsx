@@ -2,6 +2,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Coffee, LogOut, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import NotificationBell from './NotificationBell'
 import Spinner from './Spinner'
 
 const NARROW_ROUTES = ['/customer/book/', '/customer/review/', '/customer/profile', '/barista/profile']
@@ -48,9 +49,10 @@ export default function AppShell({ items, children }) {
   return (
     <div className="min-h-dvh bg-[#FBF6EF] md:flex">
       {isBarista && (
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-[#2B1A12] p-4 md:flex">
-          <div className="mb-8 px-2 pt-2">
+        <aside className="sticky top-0 z-30 hidden h-dvh w-64 shrink-0 flex-col bg-[#2B1A12] p-4 md:flex">
+          <div className="mb-8 flex items-center justify-between px-2 pt-2">
             <Brand dark />
+            <NotificationBell dark placement="sidebar" />
           </div>
           <nav className="flex flex-col gap-1">
             {items.map(({ to, label, icon: Icon }) => (
@@ -116,6 +118,7 @@ export default function AppShell({ items, children }) {
               ))}
             </nav>
             <div className="ml-auto flex items-center gap-3">
+              <NotificationBell />
               <Link
                 to={profilePath}
                 className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition hover:bg-stone-100"
@@ -136,9 +139,12 @@ export default function AppShell({ items, children }) {
 
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#EADCCB] bg-white/90 px-5 backdrop-blur md:hidden">
           <Brand />
-          <Link to={profilePath} aria-label="Profile">
-            <Initial name={profile?.full_name} className="h-9 w-9 text-sm" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Link to={profilePath} aria-label="Profile">
+              <Initial name={profile?.full_name} className="h-9 w-9 text-sm" />
+            </Link>
+          </div>
         </header>
 
         <main className="flex-1">

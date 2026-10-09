@@ -68,6 +68,15 @@ export default function Login() {
           />
         </label>
 
+        <div className="-mt-2 text-right">
+          <Link
+            to="/forgot-password"
+            className="text-sm font-semibold text-[#8A4F1E] hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         {error && (
           <p role="alert" className="animate-fade-in rounded-xl bg-red-50 p-3 text-sm text-red-800">
             {error}

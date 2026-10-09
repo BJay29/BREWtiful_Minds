@@ -18,6 +18,7 @@ import BaristaAvatar from '../../components/BaristaAvatar'
 import EmptyState from '../../components/EmptyState'
 import LatteArt from '../../components/LatteArt'
 import MapView from '../../components/MapView'
+import RateAvailability from '../../components/RateAvailability'
 import RatingPill from '../../components/RatingPill'
 import { customerNav } from '../../lib/nav'
 import { formatDate } from '../../lib/format'
@@ -149,6 +150,8 @@ export default function BaristaProfile() {
               <p className="text-sm leading-relaxed text-stone-700">{barista.bio}</p>
             </section>
           )}
+
+          <RateAvailability baristaId={id} />
 
           {hasPin && (
             <section className={`${card} animate-fade-up p-5`} style={{ animationDelay: '40ms' }}>

@@ -2,7 +2,7 @@ import { Check, MapPin, Navigation, X } from 'lucide-react'
 import { formatDate } from '../lib/format'
 import { mapsLink } from '../lib/geo'
 
-export default function RequestCard({ booking, onAccept, onDecline, index = 0 }) {
+export default function RequestCard({ booking, onAccept, onDecline, index = 0, children }) {
   const initial = (booking.customerName || 'C').charAt(0).toUpperCase()
   const hasPin = booking.latitude != null && booking.longitude != null
 
@@ -63,6 +63,8 @@ export default function RequestCard({ booking, onAccept, onDecline, index = 0 })
           </button>
         </div>
       )}
+
+      {children}
     </div>
   )
 }

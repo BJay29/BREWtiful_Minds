@@ -6,10 +6,11 @@ import AppShell from '../../components/AppShell'
 import BaristaAvatar from '../../components/BaristaAvatar'
 import EmptyState from '../../components/EmptyState'
 import PageHeader from '../../components/PageHeader'
+import PaymentSection from '../../components/PaymentSection'
 import StatusPill from '../../components/StatusPill'
 import Tabs from '../../components/Tabs'
 import { customerNav } from '../../lib/nav'
-import { formatDate } from '../../lib/format'
+import { formatDate, todayISO } from '../../lib/format'
 import { btnOutline, btnPrimary, card } from '../../lib/ui'
 
 const TABS = ['Pending', 'Accepted', 'Completed', 'Closed']
@@ -23,10 +24,24 @@ const STATUS_BY_TAB = {
 export default function MyBookings() {
   const { userId, bookings, getBarista, hasReview, setBookingStatus } = useStore()
   const [tab, setTab] = useState('Pending')
+  const today = todayISO()
 
-  const list = bookings.filter(
+  let list = bookings.filter(
     (k) => k.customerId === userId && STATUS_BY_TAB[tab].includes(k.status)
   )
+  if (tab === 'Completed' || tab === 'Closed') list = [...list].reverse()
+
+  function cancel(id) {
+    if (window.confirm('Cancel this booking? This cannot be undone.')) {
+      setBookingStatus(id, 'cancelled')
+    }
+  }
+
+  function complete(id) {
+    if (window.confirm('Mark this booking as completed?')) {
+      setBookingStatus(id, 'completed')
+    }
+  }
 
   return (
     <AppShell items={customerNav}>
@@ -45,6 +60,7 @@ export default function MyBookings() {
         )}
         {list.map((k, i) => {
           const barista = getBarista(k.baristaId)
+          const canComplete = k.date <= today
           return (
             <div
               key={k.id}
@@ -78,42 +94,68 @@ export default function MyBookings() {
                 <StatusPill status={k.status} />
               </div>
 
+              {k.status === 'cancelled' && (
+                <p className="mt-3 rounded-xl bg-[#FBF6EF] py-2 text-center text-xs font-semibold text-stone-500">
+                  {k.cancelledBy === userId
+                    ? 'You cancelled this booking'
+                    : k.cancelledBy
+                      ? 'The barista cancelled this booking'
+                      : 'This booking was cancelled'}
+                </p>
+              )}
+
+              {k.status === 'declined' && (
+                <p className="mt-3 rounded-xl bg-[#FBF6EF] py-2 text-center text-xs font-semibold text-stone-500">
+                  The barista declined this request
+                </p>
+              )}
+
               {k.status === 'pending' && (
-                <button
-                  onClick={() => setBookingStatus(k.id, 'cancelled')}
-                  className={`${btnOutline} mt-4 h-11 w-full`}
-                >
+                <button onClick={() => cancel(k.id)} className={`${btnOutline} mt-4 h-11 w-full`}>
                   Cancel booking
                 </button>
               )}
 
               {k.status === 'accepted' && (
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => setBookingStatus(k.id, 'cancelled')}
-                    className={`${btnOutline} h-11 flex-1`}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => setBookingStatus(k.id, 'completed')}
-                    className={`${btnPrimary} h-11 flex-1`}
-                  >
-                    Mark as completed
-                  </button>
-                </div>
+                <>
+                  <PaymentSection booking={k} />
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={() => cancel(k.id)} className={`${btnOutline} h-11 flex-1`}>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => complete(k.id)}
+                      disabled={!canComplete}
+                      className={`${btnPrimary} h-11 flex-1 disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      Mark as completed
+                    </button>
+                  </div>
+                  {!canComplete && (
+                    <p className="mt-2 text-center text-xs text-stone-500">
+                      You can mark this as completed on or after {formatDate(k.date)}.
+                    </p>
+                  )}
+                </>
               )}
 
-              {k.status === 'completed' &&
-                (hasReview(k.id) ? (
-                  <p className="mt-4 rounded-xl bg-[#FBF6EF] py-2.5 text-center text-xs font-semibold text-stone-500">
-                    You reviewed this booking
-                  </p>
-                ) : (
-                  <Link to={`/customer/review/${k.id}`} className={`${btnPrimary} mt-4 h-11 w-full`}>
-                    Rate this barista
-                  </Link>
-                ))}
+              {k.status === 'completed' && (
+                <>
+                  <PaymentSection booking={k} />
+                  {hasReview(k.id) ? (
+                    <p className="mt-4 rounded-xl bg-[#FBF6EF] py-2.5 text-center text-xs font-semibold text-stone-500">
+                      You reviewed this booking
+                    </p>
+                  ) : (
+                    <Link
+                      to={`/customer/review/${k.id}`}
+                      className={`${btnPrimary} mt-4 h-11 w-full`}
+                    >
+                      Rate this barista
+                    </Link>
+                  )}
+                </>
+              )}
             </div>
           )
         })}
