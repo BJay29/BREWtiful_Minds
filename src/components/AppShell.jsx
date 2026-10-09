@@ -21,7 +21,7 @@ function Brand({ dark }) {
       >
         <Coffee className={`h-5 w-5 ${dark ? 'text-[#3B2316]' : 'text-[#F6E9D8]'}`} />
       </span>
-      My BT Mate
+      BREWtiful Minds
     </div>
   )
 }

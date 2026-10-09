@@ -63,7 +63,7 @@ export default function Register() {
   )
 
   return (
-    <AuthLayout title="Join My BT Mate" subtitle="Choose how you will use the app.">
+    <AuthLayout title="Join BREWtiful Minds" subtitle="Choose how you will use the app.">
       <div>
         <h2 className="font-display text-2xl font-bold text-[#2B1A12]">Create account</h2>
         <p className="mt-1 text-sm text-stone-500">It only takes a minute.</p>

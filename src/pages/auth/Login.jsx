@@ -38,7 +38,7 @@ export default function Login() {
   }
 
   return (
-    <AuthLayout title="My BT Mate" subtitle="Find the barista behind your favorite cup.">
+    <AuthLayout title="BREWtiful Minds" subtitle="Find the barista behind your favorite cup.">
       <div>
         <h2 className="font-display text-2xl font-bold text-[#2B1A12]">Welcome back</h2>
         <p className="mt-1 text-sm text-stone-500">Log in to find or book your favorite barista.</p>
