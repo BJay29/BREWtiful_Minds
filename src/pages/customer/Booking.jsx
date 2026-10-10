@@ -40,7 +40,7 @@ export default function Booking() {
     Promise.all([
       supabase
         .from('barista_payment')
-        .select('rate, deposit_percent')
+        .select('rate, deposit_percent, accepts_gcash, accepts_cash')
         .eq('barista_id', id)
         .maybeSingle(),
       supabase.rpc('get_unavailable_dates', { p_barista: id }),
@@ -68,6 +68,13 @@ export default function Booking() {
 
   const deposit =
     pay?.rate != null && pay.deposit_percent ? (pay.rate * pay.deposit_percent) / 100 : null
+
+  const accepted = [
+    pay?.accepts_gcash !== false ? 'GCash' : null,
+    pay?.accepts_cash !== false ? 'Cash on event day' : null,
+  ]
+    .filter(Boolean)
+    .join(' or ')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -120,14 +127,15 @@ export default function Booking() {
         <div className="mb-4 rounded-2xl border border-[#EADCCB] bg-[#F6E6D2]/70 p-4 text-sm text-[#4A2B18]">
           <p>
             Rate: <b>{peso(pay.rate)}</b> per event
-            {deposit != null && (
+            {deposit != null && pay.accepts_gcash !== false && (
               <>
-                {' '}· Deposit ({pay.deposit_percent}%): <b>{peso(deposit)}</b>
+                {' '}· GCash deposit ({pay.deposit_percent}%): <b>{peso(deposit)}</b>
               </>
             )}
           </p>
           <p className="mt-1 text-xs">
-            You pay after the barista accepts your request. Payment details will appear in My bookings.
+            Accepts: {accepted}. You pay after the barista accepts your request. Payment details
+            will appear in My bookings.
           </p>
         </div>
       )}

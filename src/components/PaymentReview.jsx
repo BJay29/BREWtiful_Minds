@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import PaymentPill from './PaymentPill'
 
+const METHOD_LABEL = { gcash: 'GCash', cash: 'Cash on event day' }
+
 // booking: { id }
 export default function PaymentReview({ booking }) {
   const [state, setState] = useState(null)
@@ -11,7 +13,7 @@ export default function PaymentReview({ booking }) {
   async function load() {
     const { data } = await supabase
       .from('bookings')
-      .select('payment_status, payment_proof_url')
+      .select('payment_status, payment_proof_url, payment_method')
       .eq('id', booking.id)
       .maybeSingle()
     setState(data)
@@ -36,12 +38,23 @@ export default function PaymentReview({ booking }) {
 
   if (!state) return null
 
+  const isCash = state.payment_method === 'cash'
+  const canMarkPaid =
+    state.payment_status !== 'paid' && (isCash || Boolean(state.payment_proof_url))
+
   return (
     <div className="mt-3 rounded-xl border border-[#EADCCB] bg-[#FBF6EF] p-3 text-sm">
       <div className="flex items-center justify-between">
         <p className="font-bold text-[#2B1A12]">Payment</p>
-        <PaymentPill status={state.payment_status} />
+        <PaymentPill status={state.payment_status} method={state.payment_method} />
       </div>
+
+      <p className="mt-1 text-xs text-stone-500">
+        Method:{' '}
+        <b className="text-stone-700">
+          {METHOD_LABEL[state.payment_method] ?? 'Not chosen yet'}
+        </b>
+      </p>
 
       {state.payment_proof_url ? (
         <a href={state.payment_proof_url} target="_blank" rel="noopener noreferrer">
@@ -51,19 +64,24 @@ export default function PaymentReview({ booking }) {
             className="mt-2 max-h-48 rounded-lg border border-[#EADCCB] object-contain"
           />
         </a>
+      ) : isCash ? (
+        <p className="mt-2 text-xs text-stone-600">
+          The customer will pay in cash on the event day. Mark it as paid once you receive it.
+        </p>
       ) : (
         <p className="mt-2 text-xs text-stone-500">No receipt uploaded yet.</p>
       )}
 
-      {state.payment_status !== 'paid' && state.payment_proof_url && (
+      {canMarkPaid && (
         <button
           onClick={() => setStatus('paid')}
           disabled={busy}
           className="mt-2 h-10 w-full rounded-xl bg-[#3B2316] text-xs font-bold text-[#F6E9D8] transition hover:bg-[#2B1A12] disabled:opacity-60"
         >
-          {busy ? 'Saving...' : 'Mark as paid'}
+          {busy ? 'Saving...' : isCash ? 'Mark as paid (cash received)' : 'Mark as paid'}
         </button>
       )}
+
       {state.payment_status === 'paid' && (
         <button
           onClick={() => setStatus('unpaid')}
@@ -74,7 +92,11 @@ export default function PaymentReview({ booking }) {
         </button>
       )}
 
-      {error && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
