@@ -1,8 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { StoreProvider } from './context/StoreContext'
 import ProtectedRoute, { FullPageLoader } from './components/ProtectedRoute'
 import { homeFor } from './lib/roles'
+import Welcome from './pages/Welcome'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
@@ -22,11 +24,31 @@ import BaristaRequests from './pages/barista/Requests'
 import BaristaMyReviews from './pages/barista/MyReviews'
 import BaristaEditProfile from './pages/barista/EditProfile'
 
+// Hindi naka-login: Welcome page. Naka-login: diretso sa home ng role niya.
 function RootRedirect() {
   const { session, profile, loading } = useAuth()
   if (loading || (session && !profile)) return <FullPageLoader />
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) return <Welcome />
   return <Navigate to={homeFor(profile.role)} replace />
+}
+
+// Kapag naka-login at biglang nawala ang session (logout), dalhin sa Login
+function LogoutWatcher() {
+  const { session, loading } = useAuth()
+  const navigate = useNavigate()
+  const hadSession = useRef(false)
+
+  useEffect(() => {
+    if (loading) return
+    if (session) {
+      hadSession.current = true
+    } else if (hadSession.current) {
+      hadSession.current = false
+      navigate('/login', { replace: true })
+    }
+  }, [session, loading, navigate])
+
+  return null
 }
 
 const guard = (role, element) => <ProtectedRoute role={role}>{element}</ProtectedRoute>
@@ -36,6 +58,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <StoreProvider>
+          <LogoutWatcher />
           <Routes>
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<Login />} />
