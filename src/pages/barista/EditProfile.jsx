@@ -7,6 +7,7 @@ import BaristaPaymentForm from '../../components/BaristaPaymentForm'
 import LocationPicker from '../../components/LocationPicker'
 import PageHeader from '../../components/PageHeader'
 import PortfolioManager from '../../components/PortfolioManager'
+import SectionBoundary from '../../components/SectionBoundary'
 import Spinner from '../../components/Spinner'
 import { baristaNav } from '../../lib/nav'
 import { btnPrimary, card, inputClass, labelClass, sectionTitle, textareaClass } from '../../lib/ui'
@@ -82,8 +83,13 @@ function ProfileForm() {
         back="/barista/profile"
       />
 
-      <AvatarUpload />
-      <PortfolioManager />
+      <SectionBoundary name="Profile photo">
+        <AvatarUpload />
+      </SectionBoundary>
+
+      <SectionBoundary name="Portfolio">
+        <PortfolioManager />
+      </SectionBoundary>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <section className={`${card} flex flex-col gap-4 p-5`}>
@@ -123,11 +129,13 @@ function ProfileForm() {
 
           <div>
             <p className="mb-2 text-sm font-semibold text-[#2B1A12]">Cafe location</p>
-            <LocationPicker
-              value={place}
-              onChange={handleLocation}
-              placeholder="Search your cafe address"
-            />
+            <SectionBoundary name="Cafe location map">
+              <LocationPicker
+                value={place}
+                onChange={handleLocation}
+                placeholder="Search your cafe address"
+              />
+            </SectionBoundary>
           </div>
 
           <label className={labelClass}>
@@ -217,8 +225,13 @@ function ProfileForm() {
         </button>
       </form>
 
-      <BaristaAvailability />
-      <BaristaPaymentForm />
+      <SectionBoundary name="Availability">
+        <BaristaAvailability />
+      </SectionBoundary>
+
+      <SectionBoundary name="Payment">
+        <BaristaPaymentForm />
+      </SectionBoundary>
     </div>
   )
 }

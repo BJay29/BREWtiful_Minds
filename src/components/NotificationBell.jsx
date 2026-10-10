@@ -15,29 +15,42 @@ export default function NotificationBell({ dark = false, placement = 'right' }) 
   useEffect(() => {
     if (!userId) return
     let cancelled = false
+    let channel = null
 
-    supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (!cancelled && data) setItems(data)
-      })
+    async function load() {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (!cancelled && data) setItems(data)
+    }
+    load().catch(() => {})
 
-    const channel = supabase
-      .channel(`notif-${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        (payload) => setItems((prev) => [payload.new, ...prev].slice(0, 20))
-      )
-      .subscribe()
+    try {
+      // Unique name per mount, so two bells (or StrictMode) never share one channel.
+      const name = `notif-${userId}-${Math.random().toString(36).slice(2, 8)}`
+      channel = supabase
+        .channel(name)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => setItems((prev) => [payload.new, ...prev].slice(0, 20))
+        )
+        .subscribe()
+    } catch (err) {
+      console.error('Live notifications are unavailable:', err)
+    }
 
     return () => {
       cancelled = true
-      supabase.removeChannel(channel)
+      if (channel) supabase.removeChannel(channel)
     }
   }, [userId])
 
@@ -105,7 +118,10 @@ export default function NotificationBell({ dark = false, placement = 'right' }) 
           <div className="flex items-center justify-between border-b border-[#EADCCB] px-4 py-3">
             <p className="text-sm font-bold">Notifications</p>
             {unread > 0 && (
-              <button onClick={markAllRead} className="text-xs font-semibold text-[#8A4F1E] hover:underline">
+              <button
+                onClick={markAllRead}
+                className="text-xs font-semibold text-[#8A4F1E] hover:underline"
+              >
                 Mark all as read
               </button>
             )}

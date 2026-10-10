@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Coffee, Mail, UserRound } from 'lucide-react'
+import { Check, Coffee, Mail, UserRound } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { homeFor } from '../../lib/roles'
 import { btnPrimary, labelClass } from '../../lib/ui'
@@ -15,14 +15,28 @@ export default function Register() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const mismatch = confirm.length > 0 && password !== confirm
+  const matches = confirm.length > 0 && password === confirm
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setMessage('')
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+
     setLoading(true)
 
     const { data, error } = await supabase.auth.signUp({
@@ -109,6 +123,31 @@ export default function Register() {
             placeholder="At least 6 characters"
           />
         </label>
+        <label className={labelClass}>
+          Confirm password
+          <PasswordInput
+            required
+            minLength={6}
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Type your password again"
+            aria-invalid={mismatch}
+          />
+          {mismatch && (
+            <span role="status" className="animate-fade-in text-xs font-normal text-red-700">
+              Passwords do not match.
+            </span>
+          )}
+          {matches && (
+            <span
+              role="status"
+              className="animate-fade-in flex items-center gap-1 text-xs font-normal text-green-700"
+            >
+              <Check className="h-3.5 w-3.5" /> Passwords match.
+            </span>
+          )}
+        </label>
 
         {error && (
           <p role="alert" className="animate-fade-in rounded-xl bg-red-50 p-3 text-sm text-red-800">
@@ -121,7 +160,7 @@ export default function Register() {
           </p>
         )}
 
-        <button type="submit" disabled={loading} className={btnPrimary}>
+        <button type="submit" disabled={loading || mismatch} className={btnPrimary}>
           {loading && <Spinner />}
           {loading ? 'Creating account...' : 'Create account'}
         </button>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Banknote, Percent, Smartphone, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../context/StoreContext'
 import { btnPrimary, card, labelClass } from '../lib/ui'
@@ -17,13 +18,18 @@ export default function BaristaPaymentForm() {
 
   useEffect(() => {
     if (!userId) return
+    let cancelled = false
+
     supabase
       .from('barista_payment')
       .select('*')
       .eq('barista_id', userId)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          setMsg({ type: 'error', text: error.message })
+        } else if (data) {
           setForm({
             gcash_number: data.gcash_number ?? '',
             gcash_name: data.gcash_name ?? '',
@@ -34,12 +40,17 @@ export default function BaristaPaymentForm() {
         }
         setLoading(false)
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [userId])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function uploadQr(e) {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
     setMsg({ type: '', text: '' })
     if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
@@ -79,7 +90,13 @@ export default function BaristaPaymentForm() {
     setSaving(false)
   }
 
-  if (loading) return <Spinner className="h-5 w-5" />
+  if (loading) {
+    return (
+      <div className="flex justify-center py-6 text-[#8A4F1E]">
+        <Spinner className="h-5 w-5" />
+      </div>
+    )
+  }
 
   return (
     <section className={`${card} flex flex-col gap-4 p-5`}>
@@ -90,27 +107,57 @@ export default function BaristaPaymentForm() {
 
       <label className={labelClass}>
         GCash number
-        <IconInput value={form.gcash_number} onChange={set('gcash_number')} placeholder="09XX XXX XXXX" inputMode="tel" />
+        <IconInput
+          icon={Smartphone}
+          value={form.gcash_number}
+          onChange={set('gcash_number')}
+          placeholder="09XX XXX XXXX"
+          inputMode="tel"
+        />
       </label>
       <label className={labelClass}>
         Account name
-        <IconInput value={form.gcash_name} onChange={set('gcash_name')} placeholder="Name on your GCash" />
+        <IconInput
+          icon={UserRound}
+          value={form.gcash_name}
+          onChange={set('gcash_name')}
+          placeholder="Name on your GCash"
+        />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className={labelClass}>
           Rate per event (₱)
-          <IconInput type="number" min="0" value={form.rate} onChange={set('rate')} placeholder="2500" />
+          <IconInput
+            icon={Banknote}
+            type="number"
+            min="0"
+            value={form.rate}
+            onChange={set('rate')}
+            placeholder="2500"
+          />
         </label>
         <label className={labelClass}>
           Deposit (%)
-          <IconInput type="number" min="0" max="100" value={form.deposit_percent} onChange={set('deposit_percent')} placeholder="30" />
+          <IconInput
+            icon={Percent}
+            type="number"
+            min="0"
+            max="100"
+            value={form.deposit_percent}
+            onChange={set('deposit_percent')}
+            placeholder="30"
+          />
         </label>
       </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-semibold text-[#2B1A12]">GCash QR code (optional)</span>
         {form.qr_url && (
-          <img src={form.qr_url} alt="GCash QR" className="h-40 w-40 rounded-xl border border-[#EADCCB] object-contain" />
+          <img
+            src={form.qr_url}
+            alt="GCash QR"
+            className="h-40 w-40 rounded-xl border border-[#EADCCB] object-contain"
+          />
         )}
         <input type="file" accept="image/*" onChange={uploadQr} disabled={uploading} className="text-sm" />
         {uploading && <p className="text-xs text-stone-500">Uploading...</p>}
@@ -119,7 +166,9 @@ export default function BaristaPaymentForm() {
       {msg.text && (
         <p
           role="alert"
-          className={`rounded-xl p-3 text-sm ${msg.type === 'error' ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}
+          className={`rounded-xl p-3 text-sm ${
+            msg.type === 'error' ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
+          }`}
         >
           {msg.text}
         </p>

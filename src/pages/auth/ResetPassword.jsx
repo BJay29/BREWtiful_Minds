@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { btnPrimary, labelClass } from '../../lib/ui'
 import AuthLayout from '../../components/AuthLayout'
@@ -15,6 +16,9 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const mismatch = confirm.length > 0 && password !== confirm
+  const matches = confirm.length > 0 && password === confirm
 
   // The link in the email signs the user in temporarily so they can set a new password.
   useEffect(() => {
@@ -38,6 +42,10 @@ export default function ResetPassword() {
     e.preventDefault()
     setError('')
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
     if (password !== confirm) {
       setError('Passwords do not match.')
       return
@@ -105,7 +113,21 @@ export default function ResetPassword() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Type it again"
+              aria-invalid={mismatch}
             />
+            {mismatch && (
+              <span role="status" className="animate-fade-in text-xs font-normal text-red-700">
+                Passwords do not match.
+              </span>
+            )}
+            {matches && (
+              <span
+                role="status"
+                className="animate-fade-in flex items-center gap-1 text-xs font-normal text-green-700"
+              >
+                <Check className="h-3.5 w-3.5" /> Passwords match.
+              </span>
+            )}
           </label>
 
           {error && (
@@ -114,7 +136,7 @@ export default function ResetPassword() {
             </p>
           )}
 
-          <button type="submit" disabled={loading} className={btnPrimary}>
+          <button type="submit" disabled={loading || mismatch} className={btnPrimary}>
             {loading && <Spinner />}
             {loading ? 'Saving...' : 'Update password'}
           </button>
