@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Coffee, LogOut, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import LogoutModal from './LogoutModal'
 import NotificationBell from './NotificationBell'
 import Spinner from './Spinner'
 
@@ -41,10 +43,22 @@ export default function AppShell({ items, children }) {
   const { loading, notice, clearNotice } = useStore()
   const { profile, signOut } = useAuth()
   const { pathname } = useLocation()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const isBarista = pathname.startsWith('/barista')
   const profilePath = isBarista ? '/barista/profile' : '/customer/profile'
   const narrow = NARROW_ROUTES.some((p) => pathname.startsWith(p))
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await signOut()
+    } finally {
+      setLoggingOut(false)
+      setConfirmOpen(false)
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-[#FBF6EF] md:flex">
@@ -84,7 +98,7 @@ export default function AppShell({ items, children }) {
               </span>
             </Link>
             <button
-              onClick={signOut}
+              onClick={() => setConfirmOpen(true)}
               className="mt-1 flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-[#D9BFA3] transition hover:bg-white/10 hover:text-white"
             >
               <LogOut className="h-5 w-5" />
@@ -127,7 +141,7 @@ export default function AppShell({ items, children }) {
                 <span className="text-sm font-semibold text-[#2B1A12]">{profile?.full_name}</span>
               </Link>
               <button
-                onClick={signOut}
+                onClick={() => setConfirmOpen(true)}
                 aria-label="Log out"
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#EADCCB] text-stone-600 transition hover:bg-stone-100 active:scale-95"
               >
@@ -204,6 +218,13 @@ export default function AppShell({ items, children }) {
           ))}
         </nav>
       </div>
+
+      <LogoutModal
+        open={confirmOpen}
+        busy={loggingOut}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   )
 }

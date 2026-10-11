@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Award,
@@ -14,6 +15,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useStore } from '../../context/StoreContext'
 import AppShell from '../../components/AppShell'
 import BaristaAvatar from '../../components/BaristaAvatar'
+import LogoutModal from '../../components/LogoutModal'
 import { baristaNav, customerNav } from '../../lib/nav'
 import { btnDanger, btnPrimary, card } from '../../lib/ui'
 
@@ -35,8 +37,20 @@ const MENUS = {
 export default function ProfileHub() {
   const { session, profile, signOut } = useAuth()
   const { myBarista } = useStore()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const role = profile.role
   const isBarista = role === 'barista'
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await signOut()
+    } finally {
+      setLoggingOut(false)
+      setConfirmOpen(false)
+    }
+  }
 
   const stats = [
     { value: myBarista?.rating ? myBarista.rating.toFixed(1) : '—', label: 'Rating', icon: Star },
@@ -105,10 +119,17 @@ export default function ProfileHub() {
         ))}
       </div>
 
-      <button onClick={signOut} className={`${btnDanger} mt-5 w-full`}>
+      <button onClick={() => setConfirmOpen(true)} className={`${btnDanger} mt-5 w-full`}>
         <LogOut className="h-5 w-5" />
         Log out
       </button>
+
+      <LogoutModal
+        open={confirmOpen}
+        busy={loggingOut}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={handleLogout}
+      />
     </AppShell>
   )
 }
